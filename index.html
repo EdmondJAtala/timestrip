@@ -92,6 +92,8 @@
       margin-bottom: 0.75rem;
     }
 
+    .header-btns { display: flex; gap: 0.35rem; }
+
     .btn-outline {
       padding: 0.45rem 0.75rem;
       font-size: 0.8rem;
@@ -112,6 +114,8 @@
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
+      text-transform: none;
+      letter-spacing: normal;
     }
 
     /* Form */
@@ -501,6 +505,16 @@
       box-shadow: 0 0 0 3px var(--accent-focus);
     }
 
+    .modal textarea {
+      scrollbar-width: thin;
+      scrollbar-color: var(--input-border) transparent;
+    }
+
+    .modal textarea::-webkit-scrollbar { width: 6px; }
+    .modal textarea::-webkit-scrollbar-track { background: transparent; }
+    .modal textarea::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 3px; }
+    .modal textarea::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
     .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.75rem; }
 
     .btn-modal-primary {
@@ -571,10 +585,6 @@
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>
             Copy
           </button>
-          <button type="button" class="btn-outline btn-sm" id="json-link-btn">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
-            Link
-          </button>
         </div>
       </div>
       <textarea id="json-editor" spellcheck="false"></textarea>
@@ -593,7 +603,13 @@
           <h1><span style="color:var(--accent);">time</span>strip</h1>
           <p class="subtitle">Timeline strip generator</p>
         </div>
-        <button type="button" class="btn-outline btn-sm" id="edit-json-btn" title="Edit JSON config">{ }</button>
+        <div class="header-btns">
+          <button type="button" class="btn-outline btn-sm" id="json-link-btn" title="Copy shareable link">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
+            Link
+          </button>
+          <button type="button" class="btn-outline btn-sm" id="edit-json-btn" title="Edit JSON config (Ctrl+E)">{ }</button>
+        </div>
       </div>
 
       <div id="error-container"></div>
@@ -1555,14 +1571,11 @@
     // Copy share link
     document.getElementById('json-link-btn').addEventListener('click', () => {
       const btn = document.getElementById('json-link-btn');
-      try {
-        const data = JSON.parse(jsonEditor.value);
-        const encoded = btoa(JSON.stringify(data)).replace(/=+$/, '');
-        const url = window.location.origin + window.location.pathname + '?c=' + encoded;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(url).then(() => btnFeedback(btn, 'Copied')).catch(() => { fallbackCopy(url); btnFeedback(btn, 'Copied'); });
-        } else { fallbackCopy(url); btnFeedback(btn, 'Copied'); }
-      } catch (_) {}
+      const encoded = btoa(JSON.stringify(formToJson())).replace(/=+$/, '');
+      const url = window.location.origin + window.location.pathname + '?c=' + encoded;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => btnFeedback(btn, 'Copied')).catch(() => { fallbackCopy(url); btnFeedback(btn, 'Copied'); });
+      } else { fallbackCopy(url); btnFeedback(btn, 'Copied'); }
     });
 
     // Download helper — uses navigation to blob URL with Content-Disposition
