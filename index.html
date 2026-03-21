@@ -84,11 +84,11 @@
       margin-bottom: 1rem;
     }
 
-    /* JSON buttons */
-    .json-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto auto;
-      gap: 0.5rem;
+    /* Sidebar header */
+    .sidebar-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
       margin-bottom: 0.75rem;
     }
 
@@ -102,17 +102,16 @@
       border-radius: 6px;
       cursor: pointer;
       transition: color 0.15s, border-color 0.15s;
-      width: 100%;
     }
 
     .btn-outline:hover { color: var(--text); border-color: var(--text-muted); }
 
-    .btn-icon {
-      width: auto;
-      padding: 0.45rem 0.5rem;
-      display: flex;
+    .btn-sm {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
+      gap: 0.3rem;
     }
 
     /* Form */
@@ -465,12 +464,28 @@
       box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     }
 
+    .modal-wide { max-width: 600px; }
+
     .modal h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-header h2 { margin: 0; }
+
+    .modal-header-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
 
     .modal textarea {
       width: 100%;
       resize: vertical;
-      min-height: 120px;
+      min-height: 280px;
       padding: 0.55rem 0.75rem;
       font-size: 0.82rem;
       font-family: "SF Mono", Menlo, monospace;
@@ -486,10 +501,7 @@
       box-shadow: 0 0 0 3px var(--accent-focus);
     }
 
-    .modal .or-divider { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 0.75rem 0; }
-
-    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
-    .modal-actions .btn-outline { font-size: 0.85rem; }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.75rem; }
 
     .btn-modal-primary {
       padding: 0.5rem 1rem;
@@ -505,9 +517,6 @@
 
     .btn-modal-primary:hover { background: var(--accent-hover); }
 
-    .modal .file-row { display: flex; align-items: center; gap: 0.75rem; }
-    .modal .file-row label.btn-outline { text-transform: none; font-size: 0.85rem; letter-spacing: normal; display: inline-block; margin: 0; color: var(--text-muted); }
-    .modal .file-name { font-size: 0.85rem; color: var(--text-muted); }
 
     /* Error */
     .error {
@@ -544,19 +553,34 @@
 </head>
 <body>
 
-  <div class="modal-overlay" id="load-modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
-    <div class="modal">
-      <h2 id="modal-title">Load JSON config</h2>
-      <div class="file-row">
-        <label class="btn-outline" for="json-file-input">Choose file</label>
-        <input type="file" id="json-file-input" accept=".json" hidden>
-        <span class="file-name" id="file-name">No file selected</span>
+  <div class="modal-overlay" id="json-modal" role="dialog" aria-labelledby="json-modal-title" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="json-modal-title">Edit JSON</h2>
+        <div class="modal-header-actions">
+          <label class="btn-outline btn-sm" for="json-file-input">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14V8m0 0l-3 3m3-3l3 3"/><path d="M3 4h10"/></svg>
+            Open
+          </label>
+          <input type="file" id="json-file-input" accept=".json" hidden>
+          <button type="button" class="btn-outline btn-sm" id="json-download-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8m0 0l-3-3m3 3l3-3"/><path d="M3 12h10"/></svg>
+            Save
+          </button>
+          <button type="button" class="btn-outline btn-sm" id="json-copy-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>
+            Copy
+          </button>
+          <button type="button" class="btn-outline btn-sm" id="json-link-btn">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M10 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/></svg>
+            Link
+          </button>
+        </div>
       </div>
-      <div class="or-divider">or paste below</div>
-      <textarea id="json-paste" placeholder='{"timeline_start": "2026-01-12", "timeline_end": "2027-01-04"}'></textarea>
+      <textarea id="json-editor" spellcheck="false"></textarea>
       <div class="modal-actions">
-        <button type="button" class="btn-outline" id="load-cancel">Cancel</button>
-        <button type="button" class="btn-modal-primary" id="load-apply">Apply</button>
+        <button type="button" class="btn-outline" id="json-cancel">Cancel</button>
+        <button type="button" class="btn-modal-primary" id="json-apply">Apply</button>
       </div>
     </div>
   </div>
@@ -564,24 +588,12 @@
   <div class="layout">
     <!-- LEFT: Settings -->
     <div class="sidebar">
-      <h1><span style="color:var(--accent);">time</span>strip</h1>
-      <p class="subtitle">Timeline strip generator</p>
-
-      <div class="json-actions">
-        <button type="button" class="btn-outline" id="load-json-btn">Load JSON</button>
-        <button type="button" class="btn-outline" id="save-json-btn">Save JSON</button>
-        <button type="button" class="btn-outline btn-icon" id="copy-json-btn" aria-label="Copy JSON to clipboard" title="Copy JSON">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
-            <path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/>
-          </svg>
-        </button>
-        <button type="button" class="btn-outline btn-icon" id="share-btn" aria-label="Copy link" title="Copy link">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 8.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/>
-            <path d="M10 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/>
-          </svg>
-        </button>
+      <div class="sidebar-header">
+        <div>
+          <h1><span style="color:var(--accent);">time</span>strip</h1>
+          <p class="subtitle">Timeline strip generator</p>
+        </div>
+        <button type="button" class="btn-outline btn-sm" id="edit-json-btn" title="Edit JSON config">{ }</button>
       </div>
 
       <div id="error-container"></div>
@@ -1377,9 +1389,8 @@
     // Initial render
     render();
 
-    // ── JSON: Load/Save/Copy ─────────────────────────────────────────────────────
-    const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>';
-    const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+    // ── JSON Editor ─────────────────────────────────────────────────────────────
+    const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
 
     const fieldMap = {
       timeline_start: { id: 'timeline_start' }, timeline_end: { id: 'timeline_end' },
@@ -1412,7 +1423,6 @@
         }
       }
       if ('padding' in data) loadPaddingIntoForm(data.padding);
-      // Load custom intervals
       if (data.intervals && Array.isArray(data.intervals) && data.intervals.length) {
         setIntervalMode('custom');
         document.getElementById('interval-list').innerHTML = '';
@@ -1421,12 +1431,12 @@
         setIntervalMode('auto');
         document.getElementById('interval-list').innerHTML = '';
       }
-      // Load color overrides
       Object.keys(colorOverrides).forEach(k => delete colorOverrides[k]);
       if (data.colors) {
         for (const [k, v] of Object.entries(data.colors)) colorOverrides[k] = v;
       }
       syncColorPickersToTheme();
+      syncGuideFill();
       render();
     }
 
@@ -1471,79 +1481,88 @@
       return obj;
     }
 
-    // Modal
-    const modal = document.getElementById('load-modal');
-    const modalContent = modal.querySelector('.modal');
-    const fileInput = document.getElementById('json-file-input');
-    const fileName = document.getElementById('file-name');
-    const jsonPaste = document.getElementById('json-paste');
-    let loadedFileText = null;
-
-    function openModal() { loadedFileText = null; fileInput.value = ''; fileName.textContent = 'No file selected'; jsonPaste.value = ''; modal.classList.add('open'); jsonPaste.focus(); }
-    function closeModal() { modal.classList.remove('open'); document.getElementById('load-json-btn').focus(); }
-
-    document.getElementById('load-json-btn').addEventListener('click', openModal);
-    document.getElementById('load-cancel').addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
-
-    modal.addEventListener('keydown', e => {
-      if (e.key !== 'Tab') return;
-      const f = modalContent.querySelectorAll('button, textarea, input, [tabindex]:not([tabindex="-1"])');
-      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length-1].focus(); }
-      else if (!e.shiftKey && document.activeElement === f[f.length-1]) { e.preventDefault(); f[0].focus(); }
-    });
-
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0]; if (!file) return;
-      fileName.textContent = file.name;
-      const r = new FileReader(); r.onload = () => { loadedFileText = r.result; }; r.readAsText(file);
-    });
-
-    document.getElementById('load-apply').addEventListener('click', () => {
-      const raw = jsonPaste.value.trim() || loadedFileText; if (!raw) return;
-      try {
-        loadJsonIntoForm(JSON.parse(raw)); closeModal();
-      } catch (e) {
-        document.getElementById('error-container').innerHTML =
-          '<div class="error" role="alert">Invalid JSON: ' + escapeHtml(e.message) + '</div>';
-        closeModal();
-      }
-    });
-
-    // Copy
-    document.getElementById('copy-json-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      const json = JSON.stringify(formToJson(), null, 2);
-      const btn = document.getElementById('copy-json-btn');
-      function showCheck() { btn.innerHTML = CHECK_ICON; setTimeout(() => { btn.innerHTML = COPY_ICON; }, 1500); }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(json).then(showCheck).catch(() => { fallbackCopy(json); showCheck(); });
-      } else { fallbackCopy(json); showCheck(); }
-    });
-
     function fallbackCopy(text) {
       const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     }
 
-    // Share link
-    const LINK_ICON = document.getElementById('share-btn').innerHTML;
-    document.getElementById('share-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      const encoded = btoa(JSON.stringify(formToJson())).replace(/=+$/, '');
-      const base = window.location.origin + window.location.pathname;
-      const url = base + '?c=' + encoded;
-      const btn = document.getElementById('share-btn');
+    function btnFeedback(btn, text) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = CHECK_ICON + ' ' + text;
+      setTimeout(() => { btn.innerHTML = orig; }, 1500);
+    }
 
-      function showCheck() {
-        btn.innerHTML = CHECK_ICON;
-        setTimeout(() => { btn.innerHTML = LINK_ICON; }, 1500);
+    // JSON modal
+    const jsonModal = document.getElementById('json-modal');
+    const jsonEditor = document.getElementById('json-editor');
+    const fileInput = document.getElementById('json-file-input');
+
+    function openJsonModal() {
+      jsonEditor.value = JSON.stringify(formToJson(), null, 2);
+      jsonModal.classList.add('open');
+      jsonEditor.focus();
+    }
+
+    function closeJsonModal() {
+      jsonModal.classList.remove('open');
+      document.getElementById('edit-json-btn').focus();
+    }
+
+    document.getElementById('edit-json-btn').addEventListener('click', openJsonModal);
+    document.getElementById('json-cancel').addEventListener('click', closeJsonModal);
+    jsonModal.addEventListener('click', e => { if (e.target === jsonModal) closeJsonModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && jsonModal.classList.contains('open')) closeJsonModal(); });
+
+    // Apply edited JSON
+    document.getElementById('json-apply').addEventListener('click', () => {
+      try {
+        loadJsonIntoForm(JSON.parse(jsonEditor.value));
+        closeJsonModal();
+      } catch (e) {
+        document.getElementById('error-container').innerHTML =
+          '<div class="error" role="alert">Invalid JSON: ' + escapeHtml(e.message) + '</div>';
+        closeJsonModal();
       }
+    });
 
+    // Open file into editor
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = () => { jsonEditor.value = r.result; };
+      r.readAsText(file);
+      fileInput.value = '';
+    });
+
+    // Save to file
+    document.getElementById('json-download-btn').addEventListener('click', () => {
+      const blob = new Blob([jsonEditor.value + '\n'], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'timestrip.json';
+      a.style.position = 'fixed'; a.style.left = '-9999px';
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { document.body.removeChild(a); }, 500);
+    });
+
+    // Copy JSON
+    document.getElementById('json-copy-btn').addEventListener('click', () => {
+      const btn = document.getElementById('json-copy-btn');
+      const text = jsonEditor.value;
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(showCheck).catch(() => { fallbackCopy(url); showCheck(); });
-      } else { fallbackCopy(url); showCheck(); }
+        navigator.clipboard.writeText(text).then(() => btnFeedback(btn, 'Copied')).catch(() => { fallbackCopy(text); btnFeedback(btn, 'Copied'); });
+      } else { fallbackCopy(text); btnFeedback(btn, 'Copied'); }
+    });
+
+    // Copy share link
+    document.getElementById('json-link-btn').addEventListener('click', () => {
+      const btn = document.getElementById('json-link-btn');
+      try {
+        const data = JSON.parse(jsonEditor.value);
+        const encoded = btoa(JSON.stringify(data)).replace(/=+$/, '');
+        const url = window.location.origin + window.location.pathname + '?c=' + encoded;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => btnFeedback(btn, 'Copied')).catch(() => { fallbackCopy(url); btnFeedback(btn, 'Copied'); });
+        } else { fallbackCopy(url); btnFeedback(btn, 'Copied'); }
+      } catch (_) {}
     });
 
     // Download helper — uses navigation to blob URL with Content-Disposition
@@ -1618,20 +1637,11 @@
       }
     });
 
-    // Save
-    document.getElementById('save-json-btn').addEventListener('click', (e) => {
-      e.preventDefault();
-      const json = JSON.stringify(formToJson(), null, 2);
-      const blob = new Blob([json + '\n'], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'timestrip.json';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-    });
-
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+      if (e.key === 'e' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        document.getElementById('save-json-btn').click();
+        if (jsonModal.classList.contains('open')) closeJsonModal(); else openJsonModal();
       }
       if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
