@@ -1526,7 +1526,12 @@
 
     document.getElementById('edit-json-btn').addEventListener('click', openJsonModal);
     document.getElementById('json-cancel').addEventListener('click', closeJsonModal);
-    jsonModal.addEventListener('click', e => { if (e.target === jsonModal) closeJsonModal(); });
+    // Close on click outside, but not if dragging (e.g. resizing textarea)
+    let modalMouseDownTarget = null;
+    jsonModal.addEventListener('mousedown', e => { modalMouseDownTarget = e.target; });
+    jsonModal.addEventListener('click', e => {
+      if (e.target === jsonModal && modalMouseDownTarget === jsonModal) closeJsonModal();
+    });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && jsonModal.classList.contains('open')) closeJsonModal(); });
 
     // Apply edited JSON
