@@ -83,4 +83,4 @@ Settings can be saved/loaded as JSON. All fields are optional except dates.
 
 ## License
 
-MIT
+MIT + Commons Clause — see [LICENSE](LICENSE)
