@@ -689,26 +689,28 @@
             <option value="transparent">Transparent</option>
           </select>
         </div>
+      </div>
+      <div class="row row-3">
         <div class="field">
           <label for="guidelines">Guidelines</label>
           <select id="guidelines">
-            <option value="off" selected>Off</option>
-            <option value="on">On</option>
+            <option value="off">Off</option>
+            <option value="on" selected>On</option>
           </select>
         </div>
         <div class="field">
-          <label for="guidelines_bg">Guide fill</label>
-          <select id="guidelines_bg">
-            <option value="transparent" selected>Transparent</option>
-            <option value="filled">Filled</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="guidelines_style">Guide style</label>
+          <label for="guidelines_style">Style</label>
           <select id="guidelines_style">
             <option value="dotted" selected>Dotted</option>
             <option value="dashed">Dashed</option>
             <option value="solid">Solid</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="guidelines_bg">Fill</label>
+          <select id="guidelines_bg">
+            <option value="transparent" selected>Transparent</option>
+            <option value="filled">Filled</option>
           </select>
         </div>
       </div>
@@ -1526,7 +1528,9 @@
     const LINK_ICON = document.getElementById('share-btn').innerHTML;
     document.getElementById('share-btn').addEventListener('click', (e) => {
       e.preventDefault();
-      const url = window.location.href;
+      const encoded = btoa(JSON.stringify(formToJson())).replace(/=+$/, '');
+      const base = window.location.origin + window.location.pathname;
+      const url = base + '?c=' + encoded;
       const btn = document.getElementById('share-btn');
 
       function showCheck() {
