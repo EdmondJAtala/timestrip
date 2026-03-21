@@ -1195,8 +1195,7 @@
 
         // Update URL with current config so bookmarking/sharing just works
         try {
-          const cfg = formToJson();
-          const encoded = btoa(JSON.stringify(cfg)).replace(/=+$/, '');
+          const encoded = encodeConfigForUrl(formToJson());
           const base = window.location.origin + window.location.pathname;
           const newUrl = base + '?c=' + encoded;
           history.replaceState(null, '', newUrl);
@@ -1497,6 +1496,40 @@
       return obj;
     }
 
+    // Compact URL encoding — short keys, skip defaults
+    const KEY_MAP = {
+      timeline_start:'a', timeline_end:'b', interval_days:'c', interval_start_number:'d',
+      interval_label:'e', month_label:'f', width:'g', strip_height:'h', height:'i',
+      padding:'j', theme:'k', transparent:'l', guidelines:'m', guidelines_bg:'n',
+      guidelines_style:'o', font_size_lg:'p', font_size_sm:'q', colors:'r', intervals:'s'
+    };
+    const KEY_UNMAP = Object.fromEntries(Object.entries(KEY_MAP).map(([k,v]) => [v,k]));
+
+    const DEFAULTS_URL = {
+      interval_days: 14, interval_start_number: 1, interval_label: 'Interval {n}',
+      month_label: '{month} {year}', width: 2559, strip_height: 160, theme: 'warm',
+      font_size_lg: 18, font_size_sm: 16, guidelines_style: 'dotted'
+    };
+
+    function encodeConfigForUrl(cfg) {
+      const compact = {};
+      for (const [k, v] of Object.entries(cfg)) {
+        if (k in DEFAULTS_URL && JSON.stringify(v) === JSON.stringify(DEFAULTS_URL[k])) continue;
+        compact[KEY_MAP[k] || k] = v;
+      }
+      return btoa(JSON.stringify(compact)).replace(/=+$/, '');
+    }
+
+    function decodeConfigFromUrl(encoded) {
+      const padded = encoded + '=='.slice(0, (4 - encoded.length % 4) % 4);
+      const compact = JSON.parse(atob(padded));
+      const full = {};
+      for (const [k, v] of Object.entries(compact)) {
+        full[KEY_UNMAP[k] || k] = v;
+      }
+      return full;
+    }
+
     function fallbackCopy(text) {
       const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
@@ -1576,7 +1609,7 @@
     // Copy share link
     document.getElementById('json-link-btn').addEventListener('click', () => {
       const btn = document.getElementById('json-link-btn');
-      const encoded = btoa(JSON.stringify(formToJson())).replace(/=+$/, '');
+      const encoded = encodeConfigForUrl(formToJson());
       const url = window.location.origin + window.location.pathname + '?c=' + encoded;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => btnFeedback(btn, 'Copied')).catch(() => { fallbackCopy(url); btnFeedback(btn, 'Copied'); });
@@ -1672,8 +1705,14 @@
       try {
         const cfgParam = originalUrlParams.get('c');
         if (!cfgParam) return;
-        const padded = cfgParam + '=='.slice(0, (4 - cfgParam.length % 4) % 4);
-        const data = JSON.parse(atob(padded));
+        // Try compact format first, fall back to legacy full-key format
+        let data;
+        try {
+          data = decodeConfigFromUrl(cfgParam);
+        } catch (_) {
+          const padded = cfgParam + '=='.slice(0, (4 - cfgParam.length % 4) % 4);
+          data = JSON.parse(atob(padded));
+        }
         loadJsonIntoForm(data);
         syncGuideFill();
       } catch (e) { console.error('Failed to load config from URL:', e); }
