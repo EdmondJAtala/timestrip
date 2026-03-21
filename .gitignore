@@ -1,0 +1,13 @@
+# Generated output
+*.png
+!assets/*.png
+
+# User config
+config.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Test artifacts
+test_*.json

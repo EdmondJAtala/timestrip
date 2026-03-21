@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>timestrip</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='2' y='6' width='28' height='10' rx='2' fill='%23d4a574'/><rect x='2' y='16' width='28' height='10' rx='2' fill='%23b8875a'/></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1a1a1c;
+      --text: #e0ddd8;
+      --text-muted: #918e87;
+      --card-bg: #212123;
+      --card-border: rgba(255,255,255,0.05);
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px var(--card-border);
+      --input-bg: #2a2a2d;
+      --input-border: #3d3d3f;
+      --input-text: #e0ddd8;
+      --section-border: #2a2a2d;
+      --accent: #d4a574;
+      --accent-hover: #e0b68a;
+      --accent-focus: rgba(212,165,116,0.15);
+      --accent-subtle: #3a3025;
+      --error-bg: #2d1f1f;
+      --error-text: #e8907a;
+      --error-border: #5c2b2b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* Split layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 1.5rem;
+      overflow-y: auto;
+      max-height: 100vh;
+      border-right: 1px solid rgba(255,255,255,0.04);
+      scrollbar-width: thin;
+      scrollbar-color: var(--input-border) transparent;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--input-border);
+      border-radius: 3px;
+    }
+    .sidebar::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    .preview-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      overflow: auto;
+      position: relative;
+      background: #141415;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.15rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    /* JSON buttons */
+    .json-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-outline {
+      padding: 0.45rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: none;
+      color: var(--text-muted);
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      width: 100%;
+    }
+
+    .btn-outline:hover { color: var(--text); border-color: var(--text-muted); }
+
+    .btn-icon {
+      width: auto;
+      padding: 0.45rem 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Form */
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .row-label { grid-template-columns: 1fr 55px; }
+
+    .info-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      height: 13px;
+      font-size: 0.55rem;
+      font-weight: 700;
+      border-radius: 50%;
+      background: var(--input-border);
+      color: var(--text-muted);
+      cursor: help;
+      vertical-align: middle;
+      margin-left: 0.2rem;
+    }
+
+    .info-icon:hover { background: var(--accent); color: #1a1a1c; }
+
+    .field { margin-bottom: 0.5rem; }
+
+    label {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.2rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--input-border);
+      border-radius: 5px;
+      background: var(--input-bg);
+      color: var(--input-text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-focus);
+    }
+
+    select, input[type="date"], input[type="number"] { color-scheme: dark; }
+
+    ::placeholder { color: #52525b; opacity: 1; }
+
+    select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23918e87' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      padding-right: 1.75rem;
+      cursor: pointer;
+    }
+
+    /* Interval mode toggle */
+    .interval-mode {
+      display: flex;
+      gap: 0;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--input-border);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .interval-mode button {
+      flex: 1;
+      padding: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: inherit;
+      background: none;
+      color: var(--text-muted);
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .interval-mode button.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+
+    .interval-mode button:not(.active):hover { color: var(--text); }
+
+    #auto-interval-fields, #custom-interval-fields { display: none; }
+    #auto-interval-fields.active, #custom-interval-fields.active { display: block; }
+
+    .interval-list { margin-bottom: 0.4rem; }
+
+    .interval-entry {
+      display: grid;
+      grid-template-columns: 1fr 1fr 24px;
+      gap: 0.35rem;
+      align-items: end;
+      margin-bottom: 0.35rem;
+    }
+
+    .interval-entry input {
+      width: 100%;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.8rem;
+      border: 1px solid var(--input-border);
+      border-radius: 5px;
+      background: var(--input-bg);
+      color: var(--input-text);
+      font-family: inherit;
+      color-scheme: dark;
+    }
+
+    .interval-entry input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-focus);
+    }
+
+    .interval-entry .interval-del {
+      width: 24px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .interval-entry .interval-del:hover { color: var(--error-text); background: var(--error-bg); }
+
+    .interval-add {
+      width: 100%;
+      padding: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: inherit;
+      background: none;
+      color: var(--text-muted);
+      border: 1px dashed var(--input-border);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .interval-add:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* Color overrides */
+    .colors-toggle {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0.35rem 0 0.4rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      user-select: none;
+    }
+
+    .colors-toggle:hover { color: var(--text); }
+
+    .colors-toggle .chevron {
+      transition: transform 0.15s;
+      font-size: 0.5rem;
+    }
+
+    .colors-toggle.open .chevron { transform: rotate(90deg); }
+
+    .colors-panel { display: none; }
+    .colors-panel.open { display: block; }
+
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .color-row label {
+      flex: 1;
+      margin: 0;
+      font-size: 0.7rem;
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--text-muted);
+    }
+
+    .color-row input[type="color"] {
+      width: 28px;
+      height: 24px;
+      padding: 0;
+      border: 1px solid var(--input-border);
+      border-radius: 4px;
+      background: var(--input-bg);
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .color-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+    .color-row input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+    .color-row .color-reset {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 0.2rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .color-row:hover .color-reset { opacity: 1; }
+    .color-row .color-reset:hover { color: var(--error-text); }
+
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0.75rem 0 0.4rem;
+      padding-top: 0.6rem;
+      border-top: 1px solid var(--section-border);
+    }
+
+    .section-label:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+    /* Preview */
+    .preview-img {
+      max-width: 100%;
+      max-height: 80vh;
+      height: auto;
+      border-radius: 0;
+      image-rendering: auto;
+    }
+
+    .preview-empty {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .preview-actions {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      font-family: inherit;
+      background: none;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-action:hover { color: var(--text); border-color: var(--text-muted); }
+
+    .export-select {
+      padding: 0.5rem 2rem 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--input-text);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23918e87' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.6rem center;
+      cursor: pointer;
+      color-scheme: dark;
+    }
+
+
+
+    .preview-checkerboard {
+      background-image:
+        linear-gradient(45deg, #242424 25%, transparent 25%),
+        linear-gradient(-45deg, #242424 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #242424 75%),
+        linear-gradient(-45deg, transparent 75%, #242424 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      padding: 1rem;
+      border-radius: 4px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.6);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+
+    .modal h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+
+    .modal textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 120px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
+      font-family: "SF Mono", Menlo, monospace;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--input-text);
+    }
+
+    .modal textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-focus);
+    }
+
+    .modal .or-divider { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin: 0.75rem 0; }
+
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+    .modal-actions .btn-outline { font-size: 0.85rem; }
+
+    .btn-modal-primary {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--accent);
+      color: #1a1a1c;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-modal-primary:hover { background: var(--accent-hover); }
+
+    .modal .file-row { display: flex; align-items: center; gap: 0.75rem; }
+    .modal .file-row label.btn-outline { text-transform: none; font-size: 0.85rem; letter-spacing: normal; display: inline-block; margin: 0; color: var(--text-muted); }
+    .modal .file-name { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Error */
+    .error {
+      background: var(--error-bg);
+      color: var(--error-text);
+      border: 1px solid var(--error-border);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* Responsive: stack on narrow screens */
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .sidebar {
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--section-border);
+      }
+      .preview-pane { min-height: 50vh; }
+    }
+
+    @media (max-width: 520px) {
+      .row { grid-template-columns: 1fr; }
+      .row-3 { grid-template-columns: 1fr; }
+      .row-4 { grid-template-columns: 1fr 1fr; }
+      .row-label { grid-template-columns: 1fr 55px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="modal-overlay" id="load-modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+    <div class="modal">
+      <h2 id="modal-title">Load JSON config</h2>
+      <div class="file-row">
+        <label class="btn-outline" for="json-file-input">Choose file</label>
+        <input type="file" id="json-file-input" accept=".json" hidden>
+        <span class="file-name" id="file-name">No file selected</span>
+      </div>
+      <div class="or-divider">or paste below</div>
+      <textarea id="json-paste" placeholder='{"timeline_start": "2026-01-12", "timeline_end": "2027-01-04"}'></textarea>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="load-cancel">Cancel</button>
+        <button type="button" class="btn-modal-primary" id="load-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT: Settings -->
+    <div class="sidebar">
+      <h1><span style="color:var(--accent);">time</span>strip</h1>
+      <p class="subtitle">Timeline strip generator</p>
+
+      <div class="json-actions">
+        <button type="button" class="btn-outline" id="load-json-btn">Load JSON</button>
+        <button type="button" class="btn-outline" id="save-json-btn">Save JSON</button>
+        <button type="button" class="btn-outline btn-icon" id="copy-json-btn" aria-label="Copy JSON to clipboard" title="Copy JSON">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
+            <path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/>
+          </svg>
+        </button>
+        <button type="button" class="btn-outline btn-icon" id="share-btn" aria-label="Copy share link" title="Copy share link">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8.5a3.5 3.5 0 0 0 5 0l2-2a3.5 3.5 0 0 0-5-5l-1 1"/>
+            <path d="M10 7.5a3.5 3.5 0 0 0-5 0l-2 2a3.5 3.5 0 0 0 5 5l1-1"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="error-container"></div>
+
+      <div class="section-label">Timeline</div>
+      <div class="row">
+        <div class="field">
+          <label for="timeline_start">Start date</label>
+          <input type="date" id="timeline_start" required>
+        </div>
+        <div class="field">
+          <label for="timeline_end">End date</label>
+          <input type="date" id="timeline_end" required>
+        </div>
+      </div>
+
+      <div class="section-label">Intervals</div>
+      <div class="interval-mode">
+        <button type="button" id="interval-mode-auto" class="active" aria-label="Auto-generate intervals">Auto</button>
+        <button type="button" id="interval-mode-custom" aria-label="Define custom intervals">Custom</button>
+      </div>
+      <div id="auto-interval-fields" class="active">
+        <div class="row">
+          <div class="field">
+            <label for="interval_days">Length (days)</label>
+            <input type="number" id="interval_days" value="21" min="1">
+          </div>
+          <div class="field">
+            <label for="interval_start_number">First number</label>
+            <input type="number" id="interval_start_number" value="1" min="1">
+          </div>
+        </div>
+      </div>
+      <div id="custom-interval-fields">
+        <div class="interval-list" id="interval-list"></div>
+        <button type="button" class="interval-add" id="interval-add" aria-label="Add a new interval entry">+ Add interval</button>
+      </div>
+
+      <div class="section-label">Labels</div>
+      <div class="row row-label">
+        <div class="field">
+          <label for="interval_label">Interval label</label>
+          <input type="text" id="interval_label" value="Interval {n}" placeholder="Interval {n}">
+        </div>
+        <div class="field">
+          <label for="font_size_sm">Size</label>
+          <input type="number" id="font_size_sm" value="16" min="8" max="72">
+        </div>
+        <div class="field">
+          <label for="month_label">Month label</label>
+          <input type="text" id="month_label" value="{month} {year}" placeholder="{month} {year}">
+        </div>
+        <div class="field">
+          <label for="font_size_lg">Size</label>
+          <input type="number" id="font_size_lg" value="18" min="8" max="72">
+        </div>
+      </div>
+
+      <div class="section-label">Image size</div>
+      <div class="row row-3">
+        <div class="field">
+          <label for="width">Width</label>
+          <input type="number" id="width" value="2559" min="100">
+        </div>
+        <div class="field">
+          <label for="strip_height">Strip height</label>
+          <input type="number" id="strip_height" value="160" min="40">
+        </div>
+        <div class="field">
+          <label for="height" style="white-space:nowrap;">Height <span class="info-icon" title="Total image height including padding and guidelines. Leave empty to auto-calculate from strip height + padding.">?</span></label>
+          <input type="number" id="height" min="0" placeholder="auto">
+        </div>
+      </div>
+
+      <div class="section-label">Padding</div>
+      <div class="row row-4">
+        <div class="field">
+          <label for="pad_top">Top</label>
+          <input type="number" id="pad_top" min="0" placeholder="none">
+        </div>
+        <div class="field">
+          <label for="pad_right">Right</label>
+          <input type="number" id="pad_right" min="0" placeholder="none">
+        </div>
+        <div class="field">
+          <label for="pad_bottom">Bottom</label>
+          <input type="number" id="pad_bottom" min="0" placeholder="none">
+        </div>
+        <div class="field">
+          <label for="pad_left">Left</label>
+          <input type="number" id="pad_left" min="0" placeholder="none">
+        </div>
+      </div>
+
+      <div class="section-label">Appearance</div>
+      <div class="row">
+        <div class="field">
+          <label for="theme">Theme</label>
+          <select id="theme"></select>
+        </div>
+        <div class="field">
+          <label for="background">Background</label>
+          <select id="background">
+            <option value="filled" selected>Filled</option>
+            <option value="transparent">Transparent</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="guidelines">Guidelines</label>
+          <select id="guidelines">
+            <option value="off" selected>Off</option>
+            <option value="on">On</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="guidelines_bg">Guide fill</label>
+          <select id="guidelines_bg">
+            <option value="transparent" selected>Transparent</option>
+            <option value="filled">Filled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="colors-toggle" id="colors-toggle">
+        <span class="chevron">&#9654;</span> Custom Colors
+      </div>
+      <div class="colors-panel" id="colors-panel">
+        <div class="color-row" data-key="bg">
+          <label>Background</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="month_bg">
+          <label>Month fill</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="month_text">
+          <label>Month text</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="month_border">
+          <label>Month border</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="interval_bg">
+          <label>Interval fill</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="interval_text">
+          <label>Interval text</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="interval_border">
+          <label>Interval border</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+        <div class="color-row" data-key="guideline">
+          <label>Guideline</label>
+          <input type="color" class="color-input">
+          <button type="button" class="color-reset" title="Reset to theme">&times;</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Live preview -->
+    <div class="preview-pane" id="preview-pane">
+      <div class="preview-empty" id="preview-empty">Adjust settings to preview</div>
+      <div class="preview-checkerboard" id="preview-wrap" style="display:none;">
+        <canvas id="preview-canvas" class="preview-img"></canvas>
+      </div>
+      <div class="preview-actions" id="preview-actions" style="display:none;">
+        <select id="export-format" class="export-select">
+          <option value="png">PNG</option>
+          <option value="svg">SVG</option>
+        </select>
+        <button class="btn-action" id="download-btn" title="Download (Ctrl+D)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2v8m0 0l-3-3m3 3l3-3"/>
+            <path d="M3 12h10"/>
+          </svg>
+          <span>Download</span>
+        </button>
+        <button class="btn-action" id="copy-btn" title="Copy to clipboard">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/>
+            <path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/>
+          </svg>
+          <span>Copy</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Themes ──────────────────────────────────────────────────────────────────
+    const THEMES = {"light":{"bg":[255,255,255],"month_bg":[230,241,251],"month_text":[12,68,124],"month_border":[24,95,165],"interval_bg":[234,243,222],"interval_text":[39,80,10],"interval_border":[59,109,17],"guideline":[0,0,0]},"dark":{"bg":[30,30,30],"month_bg":[25,55,90],"month_text":[180,210,240],"month_border":[40,90,150],"interval_bg":[35,60,25],"interval_text":[180,220,160],"interval_border":[55,100,30],"guideline":[255,255,255]},"solarized-dark":{"bg":[0,43,54],"month_bg":[7,54,66],"month_text":[131,148,150],"month_border":[38,139,210],"interval_bg":[7,54,66],"interval_text":[181,137,0],"interval_border":[133,153,0],"guideline":[255,255,255]},"solarized-light":{"bg":[253,246,227],"month_bg":[238,232,213],"month_text":[38,139,210],"month_border":[101,123,131],"interval_bg":[238,232,213],"interval_text":[133,153,0],"interval_border":[101,123,131],"guideline":[0,0,0]},"nord":{"bg":[46,52,64],"month_bg":[59,66,82],"month_text":[216,222,233],"month_border":[76,86,106],"interval_bg":[59,66,82],"interval_text":[163,190,140],"interval_border":[76,86,106],"guideline":[255,255,255]},"dracula":{"bg":[40,42,54],"month_bg":[68,71,90],"month_text":[189,147,249],"month_border":[98,114,164],"interval_bg":[68,71,90],"interval_text":[80,250,123],"interval_border":[98,114,164],"guideline":[255,255,255]},"monokai":{"bg":[39,40,34],"month_bg":[54,55,49],"month_text":[230,219,116],"month_border":[117,113,94],"interval_bg":[54,55,49],"interval_text":[166,226,46],"interval_border":[117,113,94],"guideline":[255,255,255]},"gruvbox-dark":{"bg":[40,40,40],"month_bg":[60,56,54],"month_text":[235,219,178],"month_border":[146,131,116],"interval_bg":[60,56,54],"interval_text":[184,187,38],"interval_border":[146,131,116],"guideline":[255,255,255]},"gruvbox-light":{"bg":[251,241,199],"month_bg":[235,219,178],"month_text":[69,133,136],"month_border":[168,153,132],"interval_bg":[235,219,178],"interval_text":[152,151,26],"interval_border":[168,153,132],"guideline":[0,0,0]},"catppuccin-mocha":{"bg":[30,30,46],"month_bg":[49,50,68],"month_text":[137,180,250],"month_border":[88,91,112],"interval_bg":[49,50,68],"interval_text":[166,227,161],"interval_border":[88,91,112],"guideline":[255,255,255]},"catppuccin-latte":{"bg":[239,241,245],"month_bg":[220,224,232],"month_text":[30,102,245],"month_border":[172,176,190],"interval_bg":[220,224,232],"interval_text":[64,160,43],"interval_border":[172,176,190],"guideline":[0,0,0]},"tokyo-night":{"bg":[26,27,38],"month_bg":[36,40,59],"month_text":[122,162,247],"month_border":[59,66,97],"interval_bg":[36,40,59],"interval_text":[158,206,106],"interval_border":[59,66,97],"guideline":[255,255,255]},"one-dark":{"bg":[40,44,52],"month_bg":[55,59,69],"month_text":[97,175,239],"month_border":[76,82,99],"interval_bg":[55,59,69],"interval_text":[152,195,121],"interval_border":[76,82,99],"guideline":[255,255,255]},"one-light":{"bg":[250,250,250],"month_bg":[232,232,232],"month_text":[64,120,242],"month_border":[200,200,200],"interval_bg":[232,232,232],"interval_text":[80,161,79],"interval_border":[200,200,200],"guideline":[0,0,0]},"github-light":{"bg":[255,255,255],"month_bg":[246,248,250],"month_text":[31,35,40],"month_border":[208,215,222],"interval_bg":[246,248,250],"interval_text":[26,127,55],"interval_border":[208,215,222],"guideline":[0,0,0]},"github-dark":{"bg":[13,17,23],"month_bg":[22,27,34],"month_text":[201,209,217],"month_border":[48,54,61],"interval_bg":[22,27,34],"interval_text":[63,185,80],"interval_border":[48,54,61],"guideline":[255,255,255]},"high-contrast":{"bg":[0,0,0],"month_bg":[0,0,0],"month_text":[255,255,255],"month_border":[255,255,255],"interval_bg":[0,0,0],"interval_text":[255,255,0],"interval_border":[255,255,255],"guideline":[255,255,255]},"pastel":{"bg":[255,255,255],"month_bg":[255,209,220],"month_text":[120,50,70],"month_border":[200,150,165],"interval_bg":[193,225,193],"interval_text":[45,80,45],"interval_border":[140,180,140],"guideline":[0,0,0]},"ocean":{"bg":[11,19,43],"month_bg":[18,32,65],"month_text":[100,200,255],"month_border":[30,60,110],"interval_bg":[18,32,65],"interval_text":[0,230,180],"interval_border":[30,60,110],"guideline":[255,255,255]},"sunset":{"bg":[45,20,44],"month_bg":[75,30,60],"month_text":[255,170,100],"month_border":[120,50,80],"interval_bg":[75,30,60],"interval_text":[255,210,70],"interval_border":[120,50,80],"guideline":[255,255,255]},"forest":{"bg":[20,30,20],"month_bg":[30,50,30],"month_text":[150,210,130],"month_border":[50,80,50],"interval_bg":[30,50,30],"interval_text":[200,230,150],"interval_border":[50,80,50],"guideline":[255,255,255]},"mint":{"bg":[21,21,21],"month_bg":[21,21,21],"month_text":[40,245,190],"month_border":[40,245,190],"interval_bg":[21,21,21],"interval_text":[40,245,190],"interval_border":[40,245,190],"guideline":[40,245,190]}};
+
+    // Populate theme select
+    const themeSelect = document.getElementById('theme');
+    for (const name of Object.keys(THEMES)) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      if (name === 'light') opt.selected = true;
+      themeSelect.appendChild(opt);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────────
+    const MONTH_ABBR = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const MONTH_FULL = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function parseDate(s) {
+      const p = s.split('-');
+      return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    }
+
+    function daysDiff(a, b) { return Math.round((b - a) / 86400000); }
+    function rgb(c) { return `rgb(${c[0]},${c[1]},${c[2]})`; }
+
+    function buildMonths(start, end, fmt) {
+      const months = [];
+      let cursor = new Date(start);
+      while (cursor < end) {
+        const y = cursor.getFullYear(), m = cursor.getMonth() + 1;
+        const nextM = m === 12 ? 1 : m + 1, nextY = m === 12 ? y + 1 : y;
+        const mEnd = new Date(nextY, nextM - 1, 1);
+        const segEnd = mEnd < end ? mEnd : end;
+        const days = daysDiff(cursor, segEnd);
+        const label = fmt
+          .replace(/\{month_full\}/g, MONTH_FULL[m]).replace(/\{month\}/g, MONTH_ABBR[m])
+          .replace(/\{mm\}/g, String(m).padStart(2,'0')).replace(/\{m\}/g, String(m))
+          .replace(/\{year\}/g, String(y)).replace(/\{yy\}/g, String(y).slice(-2));
+        months.push({ label, days });
+        cursor = segEnd;
+      }
+      return months;
+    }
+
+    function buildIntervals(start, end, days, startNum, fmt) {
+      const intervals = [];
+      let cursor = new Date(start), n = startNum;
+      while (cursor < end) {
+        intervals.push({ label: fmt.replace(/\{n\}/g, String(n)), start: new Date(cursor) });
+        cursor = new Date(cursor.getTime() + days * 86400000);
+        n++;
+      }
+      return intervals;
+    }
+
+    function drawDottedLine(ctx, x, y0, y1, color) {
+      ctx.strokeStyle = color; ctx.lineWidth = 1;
+      let y = y0;
+      while (y < y1) {
+        const end = Math.min(y + 6, y1);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, end); ctx.stroke();
+        y += 11;
+      }
+    }
+
+    function drawCell(ctx, x, y, w, h, bg, border, text, font, textColor, skipTop) {
+      x = Math.round(x); w = Math.round(w);
+      if (bg) { ctx.fillStyle = bg; ctx.fillRect(x, y, w, h); }
+      ctx.strokeStyle = border; ctx.lineWidth = 1;
+      const x1 = x + w - 1, y1 = y + h - 1;
+      ctx.beginPath();
+      if (!skipTop) { ctx.moveTo(x, y); ctx.lineTo(x1, y); }
+      ctx.moveTo(x, y1); ctx.lineTo(x1, y1);
+      ctx.moveTo(x, y); ctx.lineTo(x, y1);
+      ctx.moveTo(x1, y); ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.font = font;
+      let drawText = text;
+      let m = ctx.measureText(drawText);
+      const maxW = w - 8;
+      if (m.width > maxW) {
+        // Truncate with ellipsis
+        while (drawText.length > 1 && ctx.measureText(drawText + '…').width > maxW) {
+          drawText = drawText.slice(0, -1);
+        }
+        if (drawText.length < text.length) drawText += '…';
+        m = ctx.measureText(drawText);
+        if (m.width > maxW) return; // cell too narrow even for ellipsis
+      }
+      const asc = m.actualBoundingBoxAscent || 12, desc = m.actualBoundingBoxDescent || 3;
+      ctx.fillStyle = textColor;
+      ctx.fillText(drawText, x + (w - m.width) / 2, y + (h - asc - desc) / 2 + asc);
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────────
+    let lastCanvas = null;
+    let debounceTimer = null;
+
+    function scheduleRender() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(render, 150);
+    }
+
+    function getDataUrl() {
+      return lastCanvas ? lastCanvas.toDataURL('image/png') : null;
+    }
+
+    function generateSVG() {
+      const startStr = document.getElementById('timeline_start').value;
+      const endStr = document.getElementById('timeline_end').value;
+      if (!startStr || !endStr) return null;
+
+      const start = parseDate(startStr), end = parseDate(endStr);
+      if (start >= end) return null;
+
+      const intervalDays = parseInt(document.getElementById('interval_days').value) || 21;
+      const intervalStart = parseInt(document.getElementById('interval_start_number').value) || 1;
+      const intervalFmt = document.getElementById('interval_label').value || 'Interval {n}';
+      const monthFmt = document.getElementById('month_label').value || '{month} {year}';
+
+      const theme = getResolvedTheme();
+      const transparent = document.getElementById('background').value === 'transparent';
+      const guidelinesOn = document.getElementById('guidelines').value === 'on';
+
+      const cw = parseInt(document.getElementById('width').value) || 2559;
+      const sh = parseInt(document.getElementById('strip_height').value) || 160;
+      const hVal = document.getElementById('height').value;
+
+      const pt = parseInt(document.getElementById('pad_top').value) || 0;
+      const pr = parseInt(document.getElementById('pad_right').value) || 0;
+      const pb = parseInt(document.getElementById('pad_bottom').value) || 0;
+      const pl = parseInt(document.getElementById('pad_left').value) || 0;
+
+      const sw = cw - pl - pr;
+      if (sw <= 0) return null;
+
+      let ch;
+      if (hVal) ch = parseInt(hVal);
+      else if (guidelinesOn) ch = pt + sh + 920 + pb;
+      else ch = pt + sh + pb;
+
+      const months = buildMonths(start, end, monthFmt);
+      let intervals;
+      if (intervalMode === 'custom') {
+        intervals = getCustomIntervals()
+          .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.start))
+          .map(s => ({ label: s.label, start: parseDate(s.start) }));
+      } else {
+        intervals = buildIntervals(start, end, intervalDays, intervalStart, intervalFmt);
+      }
+      const totalDays = months.reduce((s, m) => s + m.days, 0);
+      const ppd = sw / totalDays;
+      const rh = Math.floor(sh / 2);
+      const tDays = daysDiff(start, end);
+      const gTop = pt + sh, gBot = ch - pb;
+      const gActive = guidelinesOn && gBot > gTop;
+      const guidelineFilled = document.getElementById('guidelines_bg').value === 'filled';
+
+      const fsLg = parseInt(document.getElementById('font_size_lg').value) || 18;
+      const fsSm = parseInt(document.getElementById('font_size_sm').value) || 16;
+      const fontFamily = '-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, sans-serif';
+
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">\n`;
+
+      // Background
+      if (!transparent) {
+        svg += `  <rect x="${pl}" y="${pt}" width="${sw}" height="${sh}" fill="${rgb(theme.bg)}"/>\n`;
+      }
+      if (gActive && guidelineFilled && !transparent) {
+        svg += `  <rect x="${pl}" y="${gTop}" width="${sw}" height="${gBot - gTop}" fill="${rgb(theme.bg)}"/>\n`;
+      } else if (gActive && guidelineFilled) {
+        svg += `  <rect x="${pl}" y="${gTop}" width="${sw}" height="${gBot - gTop}" fill="${rgb(theme.bg)}"/>\n`;
+      }
+
+      // Month cells
+      let cx = 0;
+      for (const { label, days } of months) {
+        const x0 = Math.round(cx); cx += days * ppd; const x1 = Math.round(cx);
+        const cellX = pl + x0, cellW = x1 - x0;
+        if (!transparent) {
+          svg += `  <rect x="${cellX}" y="${pt}" width="${cellW}" height="${rh}" fill="${rgb(theme.month_bg)}"/>\n`;
+        }
+        svg += `  <rect x="${cellX}" y="${pt}" width="${cellW}" height="${rh}" fill="none" stroke="${rgb(theme.month_border)}" stroke-width="1"/>\n`;
+        // Text (only if it fits)
+        const approxTw = label.length * fsLg * 0.6;
+        if (approxTw < cellW - 8) {
+          svg += `  <text x="${cellX + cellW/2}" y="${pt + rh/2}" font-family="${fontFamily}" font-size="${fsLg}" fill="${rgb(theme.month_text)}" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>\n`;
+        }
+      }
+
+      // Interval cells
+      const sxPos = [];
+      let lastX1 = 0;
+      for (let i = 0; i < intervals.length; i++) {
+        const { label, start: sd } = intervals[i];
+        const off = daysDiff(start, sd);
+        let endOff;
+        if (intervalMode === 'custom' && i + 1 < intervals.length) {
+          endOff = Math.min(daysDiff(start, intervals[i + 1].start), tDays);
+        } else {
+          endOff = Math.min(off + intervalDays, tDays);
+        }
+        if (off >= tDays || endOff <= 0) continue;
+        const co = Math.max(off, 0);
+        const x0 = Math.round(co * ppd), x1 = Math.round(endOff * ppd);
+        const cellX = pl + x0, cellW = x1 - x0;
+        const cellY = pt + rh;
+        if (!transparent) {
+          svg += `  <rect x="${cellX}" y="${cellY}" width="${cellW}" height="${rh}" fill="${rgb(theme.interval_bg)}"/>\n`;
+        }
+        // Border: bottom, left, right (skip top)
+        svg += `  <line x1="${cellX}" y1="${cellY + rh}" x2="${cellX + cellW}" y2="${cellY + rh}" stroke="${rgb(theme.interval_border)}" stroke-width="1"/>\n`;
+        svg += `  <line x1="${cellX}" y1="${cellY}" x2="${cellX}" y2="${cellY + rh}" stroke="${rgb(theme.interval_border)}" stroke-width="1"/>\n`;
+        svg += `  <line x1="${cellX + cellW}" y1="${cellY}" x2="${cellX + cellW}" y2="${cellY + rh}" stroke="${rgb(theme.interval_border)}" stroke-width="1"/>\n`;
+        const approxTw = label.length * fsSm * 0.6;
+        if (approxTw < cellW - 8) {
+          svg += `  <text x="${cellX + cellW/2}" y="${cellY + rh/2}" font-family="${fontFamily}" font-size="${fsSm}" fill="${rgb(theme.interval_text)}" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>\n`;
+        }
+        sxPos.push(cellX);
+        lastX1 = pl + x1;
+      }
+
+      // Guidelines
+      if (gActive && sxPos.length) {
+        sxPos.push(Math.min(lastX1, cw - pr - 1));
+        const lc = rgb(theme.guideline || theme.interval_border);
+        for (const x of sxPos) {
+          svg += `  <line x1="${x}" y1="${gTop}" x2="${x}" y2="${gBot}" stroke="${lc}" stroke-width="1" stroke-dasharray="6,5"/>\n`;
+        }
+      }
+
+      svg += '</svg>';
+      return svg;
+    }
+
+    function render() {
+      const errEl = document.getElementById('error-container');
+      errEl.innerHTML = '';
+
+      try {
+        const startStr = document.getElementById('timeline_start').value;
+        const endStr = document.getElementById('timeline_end').value;
+        if (!startStr || !endStr) { showEmpty(); return; }
+
+        const start = parseDate(startStr), end = parseDate(endStr);
+        if (start >= end) throw new Error('Start must be before end.');
+
+        const intervalDays = parseInt(document.getElementById('interval_days').value) || 21;
+        const intervalStart = parseInt(document.getElementById('interval_start_number').value) || 1;
+        const intervalFmt = document.getElementById('interval_label').value || 'Interval {n}';
+        const monthFmt = document.getElementById('month_label').value || '{month} {year}';
+
+        const theme = getResolvedTheme();
+        const transparent = document.getElementById('background').value === 'transparent';
+        const guidelinesOn = document.getElementById('guidelines').value === 'on';
+
+        const cw = parseInt(document.getElementById('width').value) || 2559;
+        const sh = parseInt(document.getElementById('strip_height').value) || 160;
+        const hVal = document.getElementById('height').value;
+
+        const pt = parseInt(document.getElementById('pad_top').value) || 0;
+        const pr = parseInt(document.getElementById('pad_right').value) || 0;
+        const pb = parseInt(document.getElementById('pad_bottom').value) || 0;
+        const pl = parseInt(document.getElementById('pad_left').value) || 0;
+
+        const sw = cw - pl - pr;
+        if (sw <= 0) throw new Error('Padding exceeds width.');
+
+        let ch;
+        if (guidelinesOn && !hVal) {
+          ch = pt + sh + 920 + pb;
+          document.getElementById('height').value = ch;
+        } else if (hVal) {
+          ch = parseInt(hVal);
+        } else {
+          ch = pt + sh + pb;
+        }
+        const months = buildMonths(start, end, monthFmt);
+        let intervals;
+        if (intervalMode === 'custom') {
+          intervals = getCustomIntervals()
+            .filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.start))
+            .map(s => ({ label: s.label, start: parseDate(s.start) }));
+        } else {
+          intervals = buildIntervals(start, end, intervalDays, intervalStart, intervalFmt);
+        }
+        const totalDays = months.reduce((s, m) => s + m.days, 0);
+        const ppd = sw / totalDays;
+        const rh = Math.floor(sh / 2);
+        const tDays = daysDiff(start, end);
+        const gTop = pt + sh, gBot = ch - pb;
+        const gActive = guidelinesOn && gBot > gTop;
+        const guidelineFilled = document.getElementById('guidelines_bg').value === 'filled';
+
+        const previewCanvas = document.getElementById('preview-canvas');
+        previewCanvas.width = cw; previewCanvas.height = ch;
+        const ctx = previewCanvas.getContext('2d');
+
+        if (transparent || gActive || pt || pr || pb || pl) {
+          ctx.clearRect(0, 0, cw, ch);
+          if (!transparent) {
+            ctx.fillStyle = rgb(theme.bg);
+            ctx.fillRect(pl, pt, sw, sh);
+          }
+          if (gActive && guidelineFilled) {
+            ctx.fillStyle = rgb(theme.bg);
+            ctx.fillRect(pl, gTop, sw, gBot - gTop);
+          }
+        } else {
+          ctx.fillStyle = rgb(theme.bg); ctx.fillRect(0, 0, cw, ch);
+        }
+
+        const fsLg = parseInt(document.getElementById('font_size_lg').value) || 18;
+        const fsSm = parseInt(document.getElementById('font_size_sm').value) || 16;
+        const fLg = fsLg + 'px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+        const fSm = fsSm + 'px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+
+        let cx = 0;
+        for (const { label, days } of months) {
+          const x0 = Math.round(cx); cx += days * ppd; const x1 = Math.round(cx);
+          drawCell(ctx, pl + x0, pt, x1 - x0, rh, transparent ? null : rgb(theme.month_bg), rgb(theme.month_border), label, fLg, rgb(theme.month_text), false);
+        }
+
+        const sxPos = [];
+        let lastX1 = 0;
+        for (let i = 0; i < intervals.length; i++) {
+          const { label, start: sd } = intervals[i];
+          const off = daysDiff(start, sd);
+          let endOff;
+          if (intervalMode === 'custom' && i + 1 < intervals.length) {
+            endOff = Math.min(daysDiff(start, intervals[i + 1].start), tDays);
+          } else {
+            endOff = Math.min(off + intervalDays, tDays);
+          }
+          if (off >= tDays || endOff <= 0) continue;
+          const co = Math.max(off, 0);
+          const x0 = Math.round(co * ppd), x1 = Math.round(endOff * ppd);
+          drawCell(ctx, pl + x0, pt + rh, x1 - x0, rh, transparent ? null : rgb(theme.interval_bg), rgb(theme.interval_border), label, fSm, rgb(theme.interval_text), true);
+          sxPos.push(pl + x0);
+          lastX1 = pl + x1;
+        }
+
+        if (gActive && sxPos.length) {
+          sxPos.push(Math.min(lastX1, cw - pr - 1));
+          const lc = rgb(theme.guideline || theme.interval_border);
+          for (const x of sxPos) drawDottedLine(ctx, x, gTop, gBot, lc);
+        }
+
+        lastCanvas = previewCanvas;
+        showPreview();
+
+      } catch (e) {
+        lastCanvas = null;
+        errEl.innerHTML = '<div class="error" role="alert">' + escapeHtml(e.message) + '</div>';
+        showEmpty();
+      }
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+    }
+
+    function showPreview() {
+      document.getElementById('preview-empty').style.display = 'none';
+      document.getElementById('preview-wrap').style.display = '';
+      document.getElementById('preview-actions').style.display = '';
+    }
+
+    function showEmpty() {
+      document.getElementById('preview-empty').style.display = '';
+      document.getElementById('preview-wrap').style.display = 'none';
+      document.getElementById('preview-actions').style.display = 'none';
+    }
+
+    // ── Custom colors ─────────────────────────────────────────────────────────
+    const colorOverrides = {}; // key -> [r,g,b] or absent
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.slice(1,3), 16);
+      const g = parseInt(hex.slice(3,5), 16);
+      const b = parseInt(hex.slice(5,7), 16);
+      return [r, g, b];
+    }
+
+    function rgbToHex(arr) {
+      return '#' + arr.map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+
+    function syncColorPickersToTheme() {
+      const themeName = document.getElementById('theme').value;
+      const theme = THEMES[themeName] || THEMES.light;
+      document.querySelectorAll('.color-row').forEach(row => {
+        const key = row.dataset.key;
+        const input = row.querySelector('.color-input');
+        if (colorOverrides[key]) {
+          input.value = rgbToHex(colorOverrides[key]);
+        } else {
+          input.value = rgbToHex(theme[key] || [128, 128, 128]);
+        }
+      });
+    }
+
+    function getResolvedTheme() {
+      const themeName = document.getElementById('theme').value;
+      const base = THEMES[themeName] || THEMES.light;
+      return { ...base, ...colorOverrides };
+    }
+
+    // Toggle panel
+    document.getElementById('colors-toggle').addEventListener('click', () => {
+      document.getElementById('colors-toggle').classList.toggle('open');
+      document.getElementById('colors-panel').classList.toggle('open');
+      syncColorPickersToTheme();
+    });
+
+    // Color input change
+    document.querySelectorAll('.color-row .color-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const key = input.closest('.color-row').dataset.key;
+        colorOverrides[key] = hexToRgb(input.value);
+        scheduleRender();
+      });
+    });
+
+    // Reset button
+    document.querySelectorAll('.color-row .color-reset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const row = btn.closest('.color-row');
+        const key = row.dataset.key;
+        delete colorOverrides[key];
+        syncColorPickersToTheme();
+        scheduleRender();
+      });
+    });
+
+    // Clear custom colors when theme changes
+    document.getElementById('theme').addEventListener('change', () => {
+      if (Object.keys(colorOverrides).length > 0) {
+        Object.keys(colorOverrides).forEach(k => delete colorOverrides[k]);
+        syncColorPickersToTheme();
+        scheduleRender();
+      }
+    });
+
+    // ── Interval mode ──────────────────────────────────────────────────────────────
+    let intervalMode = 'auto';
+
+    function setIntervalMode(mode) {
+      intervalMode = mode;
+      document.getElementById('interval-mode-auto').classList.toggle('active', mode === 'auto');
+      document.getElementById('interval-mode-custom').classList.toggle('active', mode === 'custom');
+      document.getElementById('auto-interval-fields').classList.toggle('active', mode === 'auto');
+      document.getElementById('custom-interval-fields').classList.toggle('active', mode === 'custom');
+      scheduleRender();
+    }
+
+    document.getElementById('interval-mode-auto').addEventListener('click', () => setIntervalMode('auto'));
+    document.getElementById('interval-mode-custom').addEventListener('click', () => setIntervalMode('custom'));
+
+    function addIntervalEntry(label, startDate) {
+      const list = document.getElementById('interval-list');
+      const div = document.createElement('div');
+      div.className = 'interval-entry';
+      div.innerHTML =
+        '<input type="text" class="interval-label-input" placeholder="Interval 1" value="' + (label || '') + '">' +
+        '<input type="date" class="interval-date-input" value="' + (startDate || '') + '">' +
+        '<button type="button" class="interval-del" title="Remove" aria-label="Remove interval">&times;</button>';
+      div.querySelector('.interval-del').addEventListener('click', () => { div.remove(); scheduleRender(); });
+      div.querySelector('.interval-label-input').addEventListener('input', scheduleRender);
+      div.querySelector('.interval-date-input').addEventListener('input', scheduleRender);
+      list.appendChild(div);
+    }
+
+    document.getElementById('interval-add').addEventListener('click', () => {
+      const existing = document.querySelectorAll('#interval-list .interval-entry');
+      const startNum = parseInt(document.getElementById('interval_start_number').value) || 1;
+      const nextNum = startNum + existing.length;
+      const fmt = document.getElementById('interval_label').value || 'Interval {n}';
+      const label = fmt.replace(/\{n\}/g, String(nextNum));
+
+      // Auto-fill date: last interval date + interval_days, or timeline start
+      let nextDate = '';
+      if (existing.length > 0) {
+        const lastDate = existing[existing.length - 1].querySelector('.interval-date-input').value;
+        const days = parseInt(document.getElementById('interval_days').value) || 21;
+        if (lastDate) {
+          const d = new Date(parseDate(lastDate).getTime() + days * 86400000);
+          nextDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+      } else {
+        nextDate = document.getElementById('timeline_start').value || '';
+      }
+
+      addIntervalEntry(label, nextDate);
+      scheduleRender();
+    });
+
+    function getCustomIntervals() {
+      const entries = document.querySelectorAll('#interval-list .interval-entry');
+      const intervals = [];
+      entries.forEach(e => {
+        const label = e.querySelector('.interval-label-input').value;
+        const start = e.querySelector('.interval-date-input').value;
+        if (start) intervals.push({ label: label || '', start });
+      });
+      return intervals;
+    }
+
+    // ── Auto-update: listen to all inputs ────────────────────────────────────────
+    document.querySelectorAll('.sidebar input, .sidebar select').forEach(el => {
+      el.addEventListener('input', scheduleRender);
+      el.addEventListener('change', scheduleRender);
+    });
+
+    // Clear height when guidelines turned off
+    document.getElementById('guidelines').addEventListener('change', () => {
+      if (document.getElementById('guidelines').value === 'off') {
+        document.getElementById('height').value = '';
+      }
+    });
+
+    // Disable guide fill when background is transparent or guidelines are off
+    function syncGuideFill() {
+      const gbg = document.getElementById('guidelines_bg');
+      const bgTransparent = document.getElementById('background').value === 'transparent';
+      const glOff = document.getElementById('guidelines').value === 'off';
+      if (bgTransparent || glOff) {
+        gbg.value = 'transparent';
+        gbg.disabled = true;
+      } else {
+        gbg.disabled = false;
+      }
+    }
+    document.getElementById('background').addEventListener('change', () => { syncGuideFill(); scheduleRender(); });
+    document.getElementById('guidelines').addEventListener('change', syncGuideFill);
+    syncGuideFill();
+
+    // Set default dates to current year
+    const thisYear = new Date().getFullYear();
+    if (!document.getElementById('timeline_start').value) {
+      document.getElementById('timeline_start').value = thisYear + '-01-01';
+    }
+    if (!document.getElementById('timeline_end').value) {
+      document.getElementById('timeline_end').value = thisYear + '-12-31';
+    }
+
+    // Initial render
+    render();
+
+    // ── JSON: Load/Save/Copy ─────────────────────────────────────────────────────
+    const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.5a1.5 1.5 0 0 0-1.5-1.5H3.5A1.5 1.5 0 0 0 2 3.5V9a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>';
+    const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+    const fieldMap = {
+      timeline_start: { id: 'timeline_start' }, timeline_end: { id: 'timeline_end' },
+      interval_days: { id: 'interval_days' }, interval_start_number: { id: 'interval_start_number' },
+      interval_label: { id: 'interval_label' }, month_label: { id: 'month_label' },
+      theme: { id: 'theme' }, transparent: { id: 'background', map: v => v ? 'transparent' : 'filled' },
+      guidelines: { id: 'guidelines', map: v => v ? 'on' : 'off' },
+      guidelines_bg: { id: 'guidelines_bg', map: v => v === 'filled' ? 'filled' : 'transparent' },
+      width: { id: 'width' }, height: { id: 'height' }, strip_height: { id: 'strip_height' },
+      font_size_lg: { id: 'font_size_lg' }, font_size_sm: { id: 'font_size_sm' },
+    };
+
+    function loadPaddingIntoForm(pad) {
+      if (typeof pad === 'number') {
+        ['pad_top','pad_right','pad_bottom','pad_left'].forEach(id => { document.getElementById(id).value = pad; });
+      } else if (typeof pad === 'object') {
+        document.getElementById('pad_top').value = pad.top || '';
+        document.getElementById('pad_right').value = pad.right || '';
+        document.getElementById('pad_bottom').value = pad.bottom || '';
+        document.getElementById('pad_left').value = pad.left || '';
+      }
+    }
+
+    function loadJsonIntoForm(data) {
+      for (const [key, cfg] of Object.entries(fieldMap)) {
+        if (key in data) {
+          const el = document.getElementById(cfg.id);
+          if (el) el.value = cfg.map ? cfg.map(data[key]) : data[key];
+        }
+      }
+      if ('padding' in data) loadPaddingIntoForm(data.padding);
+      // Load custom intervals
+      if (data.intervals && Array.isArray(data.intervals) && data.intervals.length) {
+        setIntervalMode('custom');
+        document.getElementById('interval-list').innerHTML = '';
+        data.intervals.forEach(s => addIntervalEntry(s.label, s.start));
+      } else {
+        setIntervalMode('auto');
+        document.getElementById('interval-list').innerHTML = '';
+      }
+      // Load color overrides
+      Object.keys(colorOverrides).forEach(k => delete colorOverrides[k]);
+      if (data.colors) {
+        for (const [k, v] of Object.entries(data.colors)) colorOverrides[k] = v;
+      }
+      syncColorPickersToTheme();
+      render();
+    }
+
+    function formToJson() {
+      const obj = {};
+      const s = document.getElementById('timeline_start').value;
+      const e = document.getElementById('timeline_end').value;
+      if (s) obj.timeline_start = s;
+      if (e) obj.timeline_end = e;
+      if (intervalMode === 'custom') {
+        const cs = getCustomIntervals();
+        if (cs.length) obj.intervals = cs;
+      } else {
+        for (const k of ['interval_days','interval_start_number']) {
+          const v = document.getElementById(k).value; if (v) obj[k] = parseInt(v, 10);
+        }
+      }
+      for (const k of ['width','strip_height','font_size_lg','font_size_sm']) {
+        const v = document.getElementById(k).value; if (v) obj[k] = parseInt(v, 10);
+      }
+      const hv = document.getElementById('height').value; if (hv) obj.height = parseInt(hv, 10);
+      const pt = parseInt(document.getElementById('pad_top').value) || 0;
+      const pr = parseInt(document.getElementById('pad_right').value) || 0;
+      const pb = parseInt(document.getElementById('pad_bottom').value) || 0;
+      const pl = parseInt(document.getElementById('pad_left').value) || 0;
+      if (pt || pr || pb || pl) {
+        if (pt === pr && pr === pb && pb === pl) obj.padding = pt;
+        else { obj.padding = {}; if (pt) obj.padding.top = pt; if (pr) obj.padding.right = pr; if (pb) obj.padding.bottom = pb; if (pl) obj.padding.left = pl; }
+      }
+      const monthLabel = document.getElementById('month_label').value; if (monthLabel) obj.month_label = monthLabel;
+      if (intervalMode === 'auto') { const sl = document.getElementById('interval_label').value; if (sl) obj.interval_label = sl; }
+      const t = document.getElementById('theme').value; if (t) obj.theme = t;
+      if (document.getElementById('background').value === 'transparent') obj.transparent = true;
+      if (document.getElementById('guidelines').value === 'on') obj.guidelines = true;
+      if (document.getElementById('guidelines_bg').value === 'filled') obj.guidelines_bg = 'filled';
+      if (Object.keys(colorOverrides).length > 0) {
+        obj.colors = {};
+        for (const [k, v] of Object.entries(colorOverrides)) obj.colors[k] = v;
+      }
+      return obj;
+    }
+
+    // Modal
+    const modal = document.getElementById('load-modal');
+    const modalContent = modal.querySelector('.modal');
+    const fileInput = document.getElementById('json-file-input');
+    const fileName = document.getElementById('file-name');
+    const jsonPaste = document.getElementById('json-paste');
+    let loadedFileText = null;
+
+    function openModal() { loadedFileText = null; fileInput.value = ''; fileName.textContent = 'No file selected'; jsonPaste.value = ''; modal.classList.add('open'); jsonPaste.focus(); }
+    function closeModal() { modal.classList.remove('open'); document.getElementById('load-json-btn').focus(); }
+
+    document.getElementById('load-json-btn').addEventListener('click', openModal);
+    document.getElementById('load-cancel').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+    modal.addEventListener('keydown', e => {
+      if (e.key !== 'Tab') return;
+      const f = modalContent.querySelectorAll('button, textarea, input, [tabindex]:not([tabindex="-1"])');
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length-1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length-1]) { e.preventDefault(); f[0].focus(); }
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0]; if (!file) return;
+      fileName.textContent = file.name;
+      const r = new FileReader(); r.onload = () => { loadedFileText = r.result; }; r.readAsText(file);
+    });
+
+    document.getElementById('load-apply').addEventListener('click', () => {
+      const raw = jsonPaste.value.trim() || loadedFileText; if (!raw) return;
+      try {
+        loadJsonIntoForm(JSON.parse(raw)); closeModal();
+      } catch (e) {
+        document.getElementById('error-container').innerHTML =
+          '<div class="error" role="alert">Invalid JSON: ' + escapeHtml(e.message) + '</div>';
+        closeModal();
+      }
+    });
+
+    // Copy
+    document.getElementById('copy-json-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const json = JSON.stringify(formToJson(), null, 2);
+      const btn = document.getElementById('copy-json-btn');
+      function showCheck() { btn.innerHTML = CHECK_ICON; setTimeout(() => { btn.innerHTML = COPY_ICON; }, 1500); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(json).then(showCheck).catch(() => { fallbackCopy(json); showCheck(); });
+      } else { fallbackCopy(json); showCheck(); }
+    });
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+
+    // Share link
+    const LINK_ICON = document.getElementById('share-btn').innerHTML;
+    document.getElementById('share-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const json = JSON.stringify(formToJson());
+      const encoded = btoa(json).replace(/=+$/, '');
+      const url = window.location.origin + window.location.pathname + '?c=' + encoded;
+      const btn = document.getElementById('share-btn');
+
+      function showCheck() {
+        btn.innerHTML = CHECK_ICON;
+        setTimeout(() => { btn.innerHTML = LINK_ICON; }, 1500);
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(showCheck).catch(() => { fallbackCopy(url); showCheck(); });
+      } else { fallbackCopy(url); showCheck(); }
+    });
+
+    // Download helper — uses navigation to blob URL with Content-Disposition
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      // Vivaldi/Chromium: use an anchor with target _self
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      // Key: set as same-origin link, not display:none
+      a.style.position = 'fixed';
+      a.style.left = '-9999px';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
+    }
+
+    // Download (PNG or SVG based on selector)
+    // Use synchronous toDataURL for PNG so the download happens within the user gesture
+    document.getElementById('download-btn').addEventListener('click', () => {
+      const fmt = document.getElementById('export-format').value;
+      if (fmt === 'svg') {
+        const svg = generateSVG();
+        if (!svg) return;
+        triggerDownload(new Blob([svg], { type: 'image/svg+xml' }), 'timestrip.svg');
+      } else {
+        if (!lastCanvas) return;
+        const dataUrl = lastCanvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'timestrip.png';
+        a.style.position = 'fixed';
+        a.style.left = '-9999px';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 1000);
+      }
+    });
+
+    // Copy (PNG to clipboard, or SVG as text)
+    document.getElementById('copy-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('copy-btn');
+      const fmt = document.getElementById('export-format').value;
+      const label = btn.querySelector('span');
+
+      function feedback(ok) {
+        label.textContent = ok ? 'Copied!' : 'Failed';
+        setTimeout(() => { label.textContent = 'Copy'; }, 1500);
+      }
+
+      try {
+        if (fmt === 'svg') {
+          const svg = generateSVG();
+          if (!svg) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(svg);
+          } else {
+            fallbackCopy(svg);
+          }
+          feedback(true);
+        } else {
+          if (!lastCanvas) return;
+          const blob = await new Promise(resolve => lastCanvas.toBlob(resolve, 'image/png'));
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          feedback(true);
+        }
+      } catch (e) {
+        feedback(false);
+      }
+    });
+
+    // Save
+    document.getElementById('save-json-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const json = JSON.stringify(formToJson(), null, 2);
+      const blob = new Blob([json + '\n'], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'timestrip.json';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        document.getElementById('save-json-btn').click();
+      }
+      if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        document.getElementById('download-btn').click();
+      }
+    });
+
+    // Load config from URL if present (must be after all declarations)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const cfgParam = params.get('c');
+      if (cfgParam) {
+        const padded = cfgParam + '=='.slice(0, (4 - cfgParam.length % 4) % 4);
+        const data = JSON.parse(atob(padded));
+        loadJsonIntoForm(data);
+      }
+    } catch (e) { console.error('Failed to load config from URL:', e); }
+  </script>
+</body>
+</html>
