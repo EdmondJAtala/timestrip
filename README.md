@@ -31,9 +31,9 @@ Everything runs client-side. No dependencies, no build step.
 
 ## Themes
 
-22 built-in themes:
+23 built-in themes (default: **warm**):
 
-`catppuccin-latte` `catppuccin-mocha` `dark` `dracula` `forest` `github-dark` `github-light` `gruvbox-dark` `gruvbox-light` `high-contrast` `light` `mint` `monokai` `nord` `ocean` `one-dark` `one-light` `pastel` `solarized-dark` `solarized-light` `sunset` `tokyo-night`
+`catppuccin-latte` `catppuccin-mocha` `dark` `dracula` `forest` `github-dark` `github-light` `gruvbox-dark` `gruvbox-light` `high-contrast` `light` `mint` `monokai` `nord` `ocean` `one-dark` `one-light` `pastel` `solarized-dark` `solarized-light` `sunset` `tokyo-night` `warm`
 
 ![dark theme example](assets/readme_dark.png)
 
@@ -55,7 +55,7 @@ Settings can be saved/loaded as JSON. All fields are optional except dates.
   "strip_height": 160,
   "height": 1440,
   "padding": { "top": 120 },
-  "theme": "light",
+  "theme": "warm",
   "transparent": false,
   "guidelines": true,
   "guidelines_bg": "transparent",
