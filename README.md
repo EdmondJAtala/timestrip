@@ -49,7 +49,7 @@ Settings can be saved/loaded as JSON. All fields are optional except dates.
 {
   "timeline_start": "2026-01-12",
   "timeline_end": "2027-01-04",
-  "interval_days": 21,
+  "interval_days": 14,
   "interval_start_number": 1,
   "interval_label": "Sprint {n}",
   "month_label": "{month} {year}",
