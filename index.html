@@ -810,7 +810,7 @@
         if (!THEMES[name]) continue;
         const opt = document.createElement('option');
         opt.value = name;
-        opt.textContent = name;
+        opt.textContent = name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         if (name === 'warm') opt.selected = true;
         optgroup.appendChild(opt);
       }
