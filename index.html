@@ -703,6 +703,14 @@
             <option value="filled">Filled</option>
           </select>
         </div>
+        <div class="field">
+          <label for="guidelines_style">Guide style</label>
+          <select id="guidelines_style">
+            <option value="dotted" selected>Dotted</option>
+            <option value="dashed">Dashed</option>
+            <option value="solid">Solid</option>
+          </select>
+        </div>
       </div>
 
       <div class="colors-toggle" id="colors-toggle">
@@ -849,13 +857,19 @@
       return intervals;
     }
 
-    function drawDottedLine(ctx, x, y0, y1, color) {
+    function drawGuideline(ctx, x, y0, y1, color, style) {
       ctx.strokeStyle = color; ctx.lineWidth = 1;
-      let y = y0;
-      while (y < y1) {
-        const end = Math.min(y + 6, y1);
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, end); ctx.stroke();
-        y += 11;
+      if (style === 'solid') {
+        ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+      } else {
+        const dash = style === 'dashed' ? 12 : 6;
+        const gap = style === 'dashed' ? 8 : 5;
+        let y = y0;
+        while (y < y1) {
+          const end = Math.min(y + dash, y1);
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, end); ctx.stroke();
+          y += dash + gap;
+        }
       }
     }
 
@@ -1021,8 +1035,10 @@
       if (gActive && sxPos.length) {
         sxPos.push(Math.min(lastX1, cw - pr - 1));
         const lc = rgb(theme.guideline || theme.interval_border);
+        const gStyle = document.getElementById('guidelines_style').value;
+        const dashAttr = gStyle === 'solid' ? '' : gStyle === 'dashed' ? ' stroke-dasharray="12,8"' : ' stroke-dasharray="6,5"';
         for (const x of sxPos) {
-          svg += `  <line x1="${x}" y1="${gTop}" x2="${x}" y2="${gBot}" stroke="${lc}" stroke-width="1" stroke-dasharray="6,5"/>\n`;
+          svg += `  <line x1="${x}" y1="${gTop}" x2="${x}" y2="${gBot}" stroke="${lc}" stroke-width="1"${dashAttr}/>\n`;
         }
       }
 
@@ -1140,7 +1156,8 @@
         if (gActive && sxPos.length) {
           sxPos.push(Math.min(lastX1, cw - pr - 1));
           const lc = rgb(theme.guideline || theme.interval_border);
-          for (const x of sxPos) drawDottedLine(ctx, x, gTop, gBot, lc);
+          const gStyle = document.getElementById('guidelines_style').value;
+          for (const x of sxPos) drawGuideline(ctx, x, gTop, gBot, lc, gStyle);
         }
 
         lastCanvas = previewCanvas;
@@ -1328,6 +1345,7 @@
     // Disable guide fill when background is transparent or guidelines are off
     function syncGuideFill() {
       const gbg = document.getElementById('guidelines_bg');
+      const gst = document.getElementById('guidelines_style');
       const bgTransparent = document.getElementById('background').value === 'transparent';
       const glOff = document.getElementById('guidelines').value === 'off';
       if (bgTransparent || glOff) {
@@ -1336,6 +1354,7 @@
       } else {
         gbg.disabled = false;
       }
+      gst.disabled = glOff;
     }
     document.getElementById('background').addEventListener('change', () => { syncGuideFill(); scheduleRender(); });
     document.getElementById('guidelines').addEventListener('change', syncGuideFill);
@@ -1364,6 +1383,7 @@
       theme: { id: 'theme' }, transparent: { id: 'background', map: v => v ? 'transparent' : 'filled' },
       guidelines: { id: 'guidelines', map: v => v ? 'on' : 'off' },
       guidelines_bg: { id: 'guidelines_bg', map: v => v === 'filled' ? 'filled' : 'transparent' },
+      guidelines_style: { id: 'guidelines_style' },
       width: { id: 'width' }, height: { id: 'height' }, strip_height: { id: 'strip_height' },
       font_size_lg: { id: 'font_size_lg' }, font_size_sm: { id: 'font_size_sm' },
     };
@@ -1437,6 +1457,8 @@
       if (document.getElementById('background').value === 'transparent') obj.transparent = true;
       if (document.getElementById('guidelines').value === 'on') obj.guidelines = true;
       if (document.getElementById('guidelines_bg').value === 'filled') obj.guidelines_bg = 'filled';
+      const gStyle = document.getElementById('guidelines_style').value;
+      if (gStyle !== 'dotted') obj.guidelines_style = gStyle;
       if (Object.keys(colorOverrides).length > 0) {
         obj.colors = {};
         for (const [k, v] of Object.entries(colorOverrides)) obj.colors[k] = v;
