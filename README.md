@@ -2,6 +2,8 @@
 
 Generate timeline strip images for project planning. A single-file web app with live preview — no server required. Useful for slide decks, dashboards, and planning documents.
 
+Create sprint timelines, quarter views, Gantt-style headers, and roadmap visuals. Export as PNG or SVG for PowerPoint, Google Slides, Keynote, Confluence, Notion, or any document. Runs entirely in the browser — no install, no backend, no dependencies.
+
 ![light theme example](assets/readme_example.png)
 
 ## Usage
