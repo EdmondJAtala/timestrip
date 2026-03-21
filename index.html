@@ -1362,6 +1362,9 @@
     document.getElementById('guidelines').addEventListener('change', syncGuideFill);
     syncGuideFill();
 
+    // Save original URL params before initial render overwrites them
+    const originalUrlParams = new URLSearchParams(window.location.search);
+
     // Set default dates to current year
     const thisYear = new Date().getFullYear();
     if (!document.getElementById('timeline_start').value) {
@@ -1639,8 +1642,7 @@
     // Load config from URL if present (must be after all declarations)
     (() => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const cfgParam = params.get('c');
+        const cfgParam = originalUrlParams.get('c');
         if (!cfgParam) return;
         const padded = cfgParam + '=='.slice(0, (4 - cfgParam.length % 4) % 4);
         const data = JSON.parse(atob(padded));
