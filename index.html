@@ -1637,15 +1637,18 @@
     });
 
     // Load config from URL if present (must be after all declarations)
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const cfgParam = params.get('c');
-      if (cfgParam) {
+    (() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const cfgParam = params.get('c');
+        if (!cfgParam) return;
         const padded = cfgParam + '=='.slice(0, (4 - cfgParam.length % 4) % 4);
         const data = JSON.parse(atob(padded));
+        console.log('Loading config from URL:', data);
         loadJsonIntoForm(data);
-      }
-    } catch (e) { console.error('Failed to load config from URL:', e); }
+        syncGuideFill();
+      } catch (e) { console.error('Failed to load config from URL:', e); }
+    })();
   </script>
 </body>
 </html>
