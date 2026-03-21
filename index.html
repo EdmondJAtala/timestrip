@@ -606,11 +606,11 @@
       <div id="auto-interval-fields" class="active">
         <div class="row">
           <div class="field">
-            <label for="interval_days">Length (days)</label>
+            <label for="interval_days">Length (days) <span class="info-icon" title="Number of days per interval. 21 for sprints, 91 for quarters, etc.">?</span></label>
             <input type="number" id="interval_days" value="21" min="1">
           </div>
           <div class="field">
-            <label for="interval_start_number">First number</label>
+            <label for="interval_start_number">First number <span class="info-icon" title="Starting number for the {n} placeholder. Set to 95 if your first interval is Sprint 95.">?</span></label>
             <input type="number" id="interval_start_number" value="1" min="1">
           </div>
         </div>
@@ -623,7 +623,7 @@
       <div class="section-label">Labels</div>
       <div class="row row-label">
         <div class="field">
-          <label for="interval_label">Interval label</label>
+          <label for="interval_label">Interval label <span class="info-icon" title="Use {n} for the interval number. Examples: Sprint {n}, Q{n}, Week {n}, S{n}">?</span></label>
           <input type="text" id="interval_label" value="Interval {n}" placeholder="Interval {n}">
         </div>
         <div class="field">
@@ -631,7 +631,7 @@
           <input type="number" id="font_size_sm" value="16" min="8" max="72">
         </div>
         <div class="field">
-          <label for="month_label">Month label</label>
+          <label for="month_label">Month label <span class="info-icon" title="Placeholders: {month} (Jan), {month_full} (January), {mm} (01), {m} (1), {year} (2026), {yy} (26). Examples: {month} {yy}, {mm}/{yy}">?</span></label>
           <input type="text" id="month_label" value="{month} {year}" placeholder="{month} {year}">
         </div>
         <div class="field">
@@ -643,11 +643,11 @@
       <div class="section-label">Image size</div>
       <div class="row row-3">
         <div class="field">
-          <label for="width">Width</label>
+          <label for="width">Width <span class="info-icon" title="Image width in pixels. 2559 for widescreen PPT (26.66in), 1920 for 16:9 slides.">?</span></label>
           <input type="number" id="width" value="2559" min="100">
         </div>
         <div class="field">
-          <label for="strip_height">Strip height</label>
+          <label for="strip_height">Strip height <span class="info-icon" title="Height of the month + interval rows combined. Split evenly between the two rows.">?</span></label>
           <input type="number" id="strip_height" value="160" min="40">
         </div>
         <div class="field">
@@ -659,19 +659,19 @@
       <div class="section-label">Padding</div>
       <div class="row row-4">
         <div class="field">
-          <label for="pad_top">Top</label>
+          <label for="pad_top" title="Transparent space above the strip">Top</label>
           <input type="number" id="pad_top" min="0" placeholder="none">
         </div>
         <div class="field">
-          <label for="pad_right">Right</label>
+          <label for="pad_right" title="Transparent space to the right of the strip">Right</label>
           <input type="number" id="pad_right" min="0" placeholder="none">
         </div>
         <div class="field">
-          <label for="pad_bottom">Bottom</label>
+          <label for="pad_bottom" title="Transparent space below the guidelines">Bottom</label>
           <input type="number" id="pad_bottom" min="0" placeholder="none">
         </div>
         <div class="field">
-          <label for="pad_left">Left</label>
+          <label for="pad_left" title="Transparent space to the left of the strip">Left</label>
           <input type="number" id="pad_left" min="0" placeholder="none">
         </div>
       </div>
@@ -683,7 +683,7 @@
           <select id="theme"></select>
         </div>
         <div class="field">
-          <label for="background">Background</label>
+          <label for="background">Background <span class="info-icon" title="Filled uses the theme background color. Transparent creates a see-through PNG for layering on slides.">?</span></label>
           <select id="background">
             <option value="filled" selected>Filled</option>
             <option value="transparent">Transparent</option>
@@ -692,7 +692,7 @@
       </div>
       <div class="row row-3">
         <div class="field">
-          <label for="guidelines">Guidelines</label>
+          <label for="guidelines">Guidelines <span class="info-icon" title="Vertical lines at each interval boundary. Extend from the strip bottom to the canvas bottom.">?</span></label>
           <select id="guidelines">
             <option value="off">Off</option>
             <option value="on" selected>On</option>
@@ -707,7 +707,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="guidelines_bg">Fill</label>
+          <label for="guidelines_bg">Fill <span class="info-icon" title="Fill the guideline area with the theme background color, or leave transparent for layering.">?</span></label>
           <select id="guidelines_bg">
             <option value="transparent" selected>Transparent</option>
             <option value="filled">Filled</option>
