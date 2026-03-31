@@ -274,8 +274,13 @@
 
     .interval-entry .interval-del:hover { color: var(--error-text); background: var(--error-bg); }
 
+    .interval-actions {
+      display: flex;
+      gap: 0.35rem;
+    }
+
     .interval-add {
-      width: 100%;
+      flex: 1;
       padding: 0.3rem;
       font-size: 0.75rem;
       font-weight: 500;
@@ -645,7 +650,11 @@
       </div>
       <div id="custom-interval-fields">
         <div class="interval-list" id="interval-list"></div>
-        <button type="button" class="interval-add" id="interval-add" aria-label="Add a new interval entry">+ Add interval</button>
+        <div class="interval-actions">
+          <button type="button" class="interval-add" id="interval-add" aria-label="Add a new interval entry">+ Add interval</button>
+          <button type="button" class="interval-add interval-csv" id="interval-csv" aria-label="Import intervals from CSV">Import CSV</button>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none">
       </div>
 
       <div class="section-label">Labels</div>
@@ -1346,6 +1355,99 @@
       addIntervalEntry(label, nextDate);
       scheduleRender();
     });
+
+    // ── CSV import for custom intervals ─────────────────────────────────────────
+    const csvFileInput = document.getElementById('csv-file-input');
+
+    document.getElementById('interval-csv').addEventListener('click', () => csvFileInput.click());
+
+    csvFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const rows = evt.target.result.trim().split(/\r?\n/).map(r => parseCSVRow(r));
+        // Detect header row: skip if first row doesn't contain a parseable date in column 2 or 3
+        let startIdx = 0;
+        if (rows.length > 1 && !flexParseDate(rows[0][1]) && !flexParseDate(rows[0][2] || '')) startIdx = 1;
+
+        const parsed = [];
+        for (let i = startIdx; i < rows.length; i++) {
+          const cols = rows[i];
+          if (cols.length < 2) continue;
+          // Support: Label,Start,End or Label,Start — we use the start date
+          const label = cols[0];
+          const dateStr = cols[1];
+          const iso = flexParseDate(dateStr);
+          if (iso) parsed.push({ label, start: iso });
+        }
+
+        if (parsed.length === 0) {
+          alert('No intervals found. Expected CSV with columns: Label, Start date (and optional End date).');
+          return;
+        }
+
+        // Confirm before replacing existing intervals
+        const existing = document.querySelectorAll('#interval-list .interval-entry');
+        if (existing.length > 0 && !confirm('Replace ' + existing.length + ' existing interval(s) with ' + parsed.length + ' from CSV?')) return;
+
+        // Clear existing entries and populate
+        document.getElementById('interval-list').innerHTML = '';
+        parsed.forEach(p => addIntervalEntry(p.label, p.start));
+
+        // Auto-set timeline start/end from imported data
+        const first = parsed[0].start;
+        // Use the last row's end date if available, otherwise last start + interval_days
+        const lastRow = rows[rows.length - 1];
+        let endIso = lastRow.length >= 3 ? flexParseDate(lastRow[2]) : null;
+        if (!endIso) {
+          const days = parseInt(document.getElementById('interval_days').value) || 21;
+          const last = parseDate(parsed[parsed.length - 1].start);
+          const endD = new Date(last.getTime() + days * 86400000);
+          endIso = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0');
+        }
+        document.getElementById('timeline_start').value = first;
+        document.getElementById('timeline_end').value = endIso;
+
+        setIntervalMode('custom');
+        scheduleRender();
+      };
+      reader.readAsText(file);
+      csvFileInput.value = '';
+    });
+
+    // Parse a single CSV row, respecting quoted fields (e.g. "Phase 1, Planning",2026-01-12)
+    function parseCSVRow(row) {
+      const cols = [];
+      let cur = '', inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (inQuotes) {
+          if (ch === '"' && row[i + 1] === '"') { cur += '"'; i++; }
+          else if (ch === '"') inQuotes = false;
+          else cur += ch;
+        } else {
+          if (ch === '"') inQuotes = true;
+          else if (ch === ',') { cols.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+      }
+      cols.push(cur.trim());
+      return cols;
+    }
+
+    // Parse flexible date formats: "22 Dec 2025", "Dec 22, 2025", "2025-12-22", "12/22/2025"
+    // Uses UTC to avoid timezone-induced date shifts
+    function flexParseDate(s) {
+      if (!s) return null;
+      s = s.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const d = new Date(s + ' UTC');
+      if (!isNaN(d.getTime())) {
+        return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+      }
+      return null;
+    }
 
     function getCustomIntervals() {
       const entries = document.querySelectorAll('#interval-list .interval-entry');
