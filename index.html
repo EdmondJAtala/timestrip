@@ -536,6 +536,47 @@
 
     .btn-modal-primary:hover { background: var(--accent-hover); }
 
+    .csv-preview {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--input-border) transparent;
+    }
+
+    .csv-preview::-webkit-scrollbar { width: 6px; }
+    .csv-preview::-webkit-scrollbar-track { background: transparent; }
+    .csv-preview::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: 3px; }
+
+    .csv-preview table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .csv-preview th, .csv-preview td {
+      padding: 0.25rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--input-border);
+    }
+
+    .csv-preview th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .csv-preview td { color: var(--text); }
+
+    .csv-preview .csv-error { color: var(--error-text); font-style: italic; }
+
+    .csv-preview .csv-count {
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      margin-top: 0.35rem;
+    }
 
     /* Error */
     .error {
@@ -600,6 +641,27 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="csv-modal" role="dialog" aria-labelledby="csv-modal-title" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="csv-modal-title">Import CSV</h2>
+        <div class="modal-header-actions">
+          <label class="btn-outline btn-sm" for="csv-file-input">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14V8m0 0l-3 3m3-3l3 3"/><path d="M3 4h10"/></svg>
+            Open
+          </label>
+          <input type="file" id="csv-file-input" accept=".csv,text/csv" hidden>
+        </div>
+      </div>
+      <textarea id="csv-editor" spellcheck="false" placeholder="Label,Start,End&#10;Sprint 1,2026-01-12,2026-01-30&#10;Sprint 2,2026-02-02,2026-02-20"></textarea>
+      <div class="csv-preview" id="csv-preview"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-outline" id="csv-cancel">Cancel</button>
+        <button type="button" class="btn-modal-primary" id="csv-apply">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <div class="layout">
     <!-- LEFT: Settings -->
     <div class="sidebar">
@@ -652,9 +714,8 @@
         <div class="interval-list" id="interval-list"></div>
         <div class="interval-actions">
           <button type="button" class="interval-add" id="interval-add" aria-label="Add a new interval entry">+ Add interval</button>
-          <button type="button" class="interval-add interval-csv" id="interval-csv" aria-label="Import intervals from CSV">Import CSV</button>
+          <button type="button" class="interval-add" id="interval-csv" aria-label="Import intervals from CSV">Import CSV</button>
         </div>
-        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none">
       </div>
 
       <div class="section-label">Labels</div>
@@ -1356,64 +1417,102 @@
       scheduleRender();
     });
 
-    // ── CSV import for custom intervals ─────────────────────────────────────────
+    // ── CSV modal ────────────────────────────────────────────────────────────────
+    const csvModal = document.getElementById('csv-modal');
+    const csvEditor = document.getElementById('csv-editor');
+    const csvPreview = document.getElementById('csv-preview');
     const csvFileInput = document.getElementById('csv-file-input');
 
-    document.getElementById('interval-csv').addEventListener('click', () => csvFileInput.click());
+    function openCsvModal() {
+      csvEditor.value = '';
+      csvPreview.innerHTML = '';
+      csvModal.classList.add('open');
+      csvEditor.focus();
+    }
 
-    csvFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const rows = evt.target.result.trim().split(/\r?\n/).map(r => parseCSVRow(r));
-        // Detect header row: skip if first row doesn't contain a parseable date in column 2 or 3
-        let startIdx = 0;
-        if (rows.length > 1 && !flexParseDate(rows[0][1]) && !flexParseDate(rows[0][2] || '')) startIdx = 1;
+    function closeCsvModal() {
+      csvModal.classList.remove('open');
+    }
 
-        const parsed = [];
-        for (let i = startIdx; i < rows.length; i++) {
-          const cols = rows[i];
-          if (cols.length < 2) continue;
-          // Support: Label,Start,End or Label,Start — we use the start date
-          const label = cols[0];
-          const dateStr = cols[1];
-          const iso = flexParseDate(dateStr);
-          if (iso) parsed.push({ label, start: iso });
-        }
+    document.getElementById('interval-csv').addEventListener('click', openCsvModal);
+    document.getElementById('csv-cancel').addEventListener('click', closeCsvModal);
 
-        if (parsed.length === 0) {
-          alert('No intervals found. Expected CSV with columns: Label, Start date (and optional End date).');
-          return;
-        }
+    let csvMouseDownTarget = null;
+    csvModal.addEventListener('mousedown', e => { csvMouseDownTarget = e.target; });
+    csvModal.addEventListener('click', e => {
+      if (e.target === csvModal && csvMouseDownTarget === csvModal) closeCsvModal();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && csvModal.classList.contains('open')) closeCsvModal(); });
 
-        // Confirm before replacing existing intervals
-        const existing = document.querySelectorAll('#interval-list .interval-entry');
-        if (existing.length > 0 && !confirm('Replace ' + existing.length + ' existing interval(s) with ' + parsed.length + ' from CSV?')) return;
-
-        // Clear existing entries and populate
-        document.getElementById('interval-list').innerHTML = '';
-        parsed.forEach(p => addIntervalEntry(p.label, p.start));
-
-        // Auto-set timeline start/end from imported data
-        const first = parsed[0].start;
-        // Use the last row's end date if available, otherwise last start + interval_days
-        const lastRow = rows[rows.length - 1];
-        let endIso = lastRow.length >= 3 ? flexParseDate(lastRow[2]) : null;
-        if (!endIso) {
-          const days = parseInt(document.getElementById('interval_days').value) || 21;
-          const last = parseDate(parsed[parsed.length - 1].start);
-          const endD = new Date(last.getTime() + days * 86400000);
-          endIso = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0');
-        }
-        document.getElementById('timeline_start').value = first;
-        document.getElementById('timeline_end').value = endIso;
-
-        setIntervalMode('custom');
-        scheduleRender();
-      };
-      reader.readAsText(file);
+    // Open file into CSV editor
+    csvFileInput.addEventListener('change', () => {
+      const file = csvFileInput.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = () => { csvEditor.value = r.result; updateCsvPreview(); };
+      r.readAsText(file);
       csvFileInput.value = '';
+    });
+
+    // Live preview on input
+    csvEditor.addEventListener('input', updateCsvPreview);
+
+    function parseCSVContent(text) {
+      if (!text.trim()) return [];
+      const rows = text.trim().split(/\r?\n/).map(r => parseCSVRow(r));
+      let startIdx = 0;
+      if (rows.length > 1 && !flexParseDate(rows[0][1]) && !flexParseDate(rows[0][2] || '')) startIdx = 1;
+      const parsed = [];
+      for (let i = startIdx; i < rows.length; i++) {
+        const cols = rows[i];
+        if (cols.length < 2) continue;
+        const label = cols[0];
+        const startIso = flexParseDate(cols[1]);
+        const endIso = cols.length >= 3 ? flexParseDate(cols[2]) : null;
+        if (startIso) parsed.push({ label, start: startIso, end: endIso });
+      }
+      return parsed;
+    }
+
+    function updateCsvPreview() {
+      const parsed = parseCSVContent(csvEditor.value);
+      if (parsed.length === 0) {
+        csvPreview.innerHTML = csvEditor.value.trim()
+          ? '<span class="csv-error">No valid intervals found. Expected: Label, Start date (and optional End date).</span>'
+          : '';
+        return;
+      }
+      let html = '<table><tr><th>#</th><th>Label</th><th>Start</th></tr>';
+      parsed.forEach((p, i) => {
+        html += '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(p.label) + '</td><td>' + p.start + '</td></tr>';
+      });
+      html += '</table><div class="csv-count">' + parsed.length + ' interval(s)</div>';
+      csvPreview.innerHTML = html;
+    }
+
+    // Apply CSV to form
+    document.getElementById('csv-apply').addEventListener('click', () => {
+      const parsed = parseCSVContent(csvEditor.value);
+      if (parsed.length === 0) return;
+
+      document.getElementById('interval-list').innerHTML = '';
+      parsed.forEach(p => addIntervalEntry(p.label, p.start));
+
+      // Auto-set timeline start/end
+      const first = parsed[0].start;
+      const lastParsed = parsed[parsed.length - 1];
+      let endIso = lastParsed.end;
+      if (!endIso) {
+        const days = parseInt(document.getElementById('interval_days').value) || 21;
+        const last = parseDate(lastParsed.start);
+        const endD = new Date(last.getTime() + days * 86400000);
+        endIso = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0');
+      }
+      document.getElementById('timeline_start').value = first;
+      document.getElementById('timeline_end').value = endIso;
+
+      setIntervalMode('custom');
+      scheduleRender();
+      closeCsvModal();
     });
 
     // Parse a single CSV row, respecting quoted fields (e.g. "Phase 1, Planning",2026-01-12)
